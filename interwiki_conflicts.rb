@@ -122,6 +122,7 @@ class InterwikiConflictSolver
 			print "#{i+1}/#{@sf.length}\r"
 			i+=1
 		end
+		return true
 	end
 	
 	def find_all_matching wiki, selector=nil
