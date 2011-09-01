@@ -1,6 +1,7 @@
 # coding: utf-8
 require 'sunflower'
 require 'launchy'
+require 'parallel_each'
 
 require 'pp'
 
@@ -113,11 +114,13 @@ class InterwikiConflictSolver
 	# Log in all wikis. Returns true on success.
 	def login_all user, pass
 		puts 'logging in... (wait)'
-		@sf.each_with_index do |kv, i|
+		i = 0
+		@sf.p_each(5) do |kv|
 			wiki, s = *kv
-			
 			s.login CGI.escape(user), CGI.escape(pass)
+			
 			print "#{i+1}/#{@sf.length}\r"
+			i+=1
 		end
 	end
 	
