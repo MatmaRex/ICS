@@ -15,8 +15,7 @@ class InterwikiConflictSolver
 		@linksfrom = {}
 		@linksto = {}
 		
-		@summary_base = "semiautomatically fixing interwiki conflicts (trouble?: [[pl:User talk:#{user}]])"
-		@summary = @summary_base
+		@summary = @summary_base = ''
 	end
 	
 	# Creates a Sunflower with customized settings and returns it; keeps a cache.
@@ -134,6 +133,9 @@ class InterwikiConflictSolver
 		@logged_in = login_all(user, pass) if do_log_in
 		pass = nil
 		puts(@logged_in ? 'logged in.' : 'preview-only mode.')
+		
+		@summary_base = "semiautomatically fixing interwiki conflicts (trouble?: [[pl:User talk:#{user}]])"
+		@summary = @summary_base
 		
 		while true
 			print '> '

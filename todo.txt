@@ -2,3 +2,4 @@
 * help
 * generic find_matching(wiki, regex) function
 * gui?
+* redo summary/login system
