@@ -111,29 +111,29 @@ class InterwikiConflictSolver
 		pairs.map{|a| "[[#{a.join ':'}]]"}
 	end
 	
+	# Log in all wikis. Returns true on success.
+	def login_all user, pass
+		puts 'logging in... (wait)'
+		@sf.each_with_index do |kv, i|
+			wiki, s = *kv
+			
+			s.login CGI.escape(user), CGI.escape(pass)
+			print "#{i+1}/#{@sf.length}\r"
+		end
+	end
 	
 	def busy_loop
 		puts "#{@all.length} articles in #{@sf.length} languages."
 		puts ''
-
 
 		puts 'log in to edit (leave empty to just preview):'
 		print 'username: '; user = gets.strip
 		print 'password: '; pass = gets.strip
 
 		do_log_in = (user!='' and pass!='')
-		puts 'logging in... (wait)' if do_log_in
-		@sf.each_with_index do |kv, i|
-			wiki, s = *kv
-			if do_log_in
-				s.login CGI.escape(user), CGI.escape(pass)
-				print "#{i+1}/#{@sf.length}\r"
-			end
-		end
-		pass=nil
-		@logged_in = true if do_log_in
-		puts 'okay.'
-		
+		@logged_in = login_all(user, pass) if do_log_in
+		pass = nil
+		puts(@logged_in ? 'logged in.' : 'preview-only mode.')
 		
 		while true
 			print '> '
