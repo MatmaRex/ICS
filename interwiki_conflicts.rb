@@ -336,20 +336,12 @@ end
 
 
 
+if __FILE__ == $0
+	start_pairs = ARGV.map{|title| title.split(':', 2) }
 
+	iw = InterwikiConflictSolver.new
+	iw.gather_from_many start_pairs
+	ARGV.pop until ARGV.empty?
 
-start_pairs = ARGV.map{|title| title.split(':', 2) }
-# start_pairs = [
-	# ['pl', 'Edgar'],
-	# ['en', 'Edgar (disambiguation)'],
-	# ['es', 'Edgar (desambiguación)'],
-# ]
-
-iw = InterwikiConflictSolver.new
-iw.gather_from_many start_pairs
-ARGV.pop until ARGV.empty?
-
-iw.busy_loop
-
-
-
+	iw.busy_loop
+end
