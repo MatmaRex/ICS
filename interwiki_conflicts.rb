@@ -124,6 +124,32 @@ class InterwikiConflictSolver
 		end
 	end
 	
+	def find_all_matching wiki, selector=nil
+		allowed_wikis = case wiki
+		when '*'
+			@all.map{|a| a[0]}.uniq
+		when /,/
+			wiki.split(',')
+		else
+			[ wiki ]
+		end
+		
+		initial_list = @all.select{|pair| allowed_wikis.include? pair[0]}
+		return initial_list if !selector
+		
+		if selector =~ /\A[\d,]+\Z/
+			return initial_list.values_at *selector.split(',').map(&:to_i)
+		else
+			if selector[0]=='/' and selector[-1]=='/'
+				regex = Regexp.new selector[1..-2], Regexp::IGNORECASE
+			else
+				regex = Regexp.new Regexp.escape(selector), Regexp::IGNORECASE
+			end
+			
+			return initial_list.select{|pair| pair[1] =~ regex}
+		end
+	end
+	
 	def busy_loop
 		puts "#{@all.length} articles in #{@sf.length} languages."
 		puts ''
@@ -243,6 +269,10 @@ class InterwikiConflictSolver
 				@groups.each_key do |k|
 					@groups[k] = to if @groups[k]==from
 				end
+				
+			when /\Afind ([a-z\-,]+|\*) (.+)\Z/,  /\Afind ([a-z\-,]+|\*)\Z/
+				wiki, selector = $1, $2
+				puts pretty_iw find_all_matching(wiki, selector)
 				
 			when 'commit'
 				if @logged_in
