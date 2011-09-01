@@ -14,10 +14,21 @@ class InterwikiConflictSolver
 		
 		@linksfrom = {}
 		@linksto = {}
+		
+		@summary_base = "semiautomatically fixing interwiki conflicts (trouble?: [[pl:User talk:#{user}]])"
+		@summary = @summary_base
 	end
 	
+	# Creates a Sunflower with customized settings and returns it; keeps a cache.
 	def get_sf wiki
-		@sf[wiki] ||= Sunflower.new wiki+'.wikipedia.org'
+		if !@sf[wiki]
+			@sf[wiki] = Sunflower.new wiki+'.wikipedia.org'
+		
+			@sf[wiki].warnings = false
+			@sf[wiki].summary = @summary
+		end
+		
+		return @sf[wiki]
 	end
 	
 	def gather_from wiki, article
@@ -114,8 +125,6 @@ class InterwikiConflictSolver
 		puts 'logging in... (wait)' if do_log_in
 		@sf.each_with_index do |kv, i|
 			wiki, s = *kv
-			s.warnings = false
-			s.summary = "semiautomatically fixing interwiki conflicts (trouble?: [[pl:User talk:#{user}]])"
 			if do_log_in
 				s.login CGI.escape(user), CGI.escape(pass)
 				print "#{i+1}/#{@sf.length}\r"
@@ -176,9 +185,10 @@ class InterwikiConflictSolver
 				end
 				
 			when /\Asummary (.+)\Z/
+				@summary = [@summary_base, $1].join ' - '
 				@sf.each_with_index do |kv, i|
 					wiki, s = *kv
-					s.summary = "semiautomatically fixing interwiki conflicts (trouble?: [[pl:User talk:#{user}]]) - #{$1}"
+					s.summary = @summary
 				end
 				
 			when /\Alinksfrom ([a-z-]+) (.+)\Z/
