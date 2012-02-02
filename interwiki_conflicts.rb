@@ -7,6 +7,7 @@ require 'pp'
 
 
 class InterwikiConflictSolver
+	attr_accessor :all, :groups, :summary
 	def initialize
 		@sf = {}
 		
@@ -31,7 +32,7 @@ class InterwikiConflictSolver
 		return @sf[wiki]
 	end
 	
-	def gather_from wiki, article
+	def gather_from wiki, article, modify_group_names=true
 		start_pair = [wiki, article]
 		if @all.include? start_pair
 			puts "skipping #{start_pair.join ':'} - already reached"
@@ -82,7 +83,7 @@ class InterwikiConflictSolver
 		
 		results.each do |pair|
 			if @groups[pair]
-				@groups[pair] += ', '+(start_pair.join ':')
+				@groups[pair] += ', '+(start_pair.join ':') if modify_group_names
 			else
 				@groups[pair] = "reached from #{start_pair.join ':'}"
 			end
@@ -176,7 +177,7 @@ class InterwikiConflictSolver
 			]
 			
 		when 'exit'
-			break
+			exit
 			
 		when 'show'
 			@all.each do |pair|
@@ -289,7 +290,11 @@ class InterwikiConflictSolver
 								page.text += "\n\n" + pretty_iw(pairs-[pair]).join("\n") unless group=='clear'
 								
 								res = page.save
-								puts "#{(pretty_iw [pair])[0]} #{res['edit']['result']=="Success" ? 'saved' : 'failure!!!'}"
+								if res != nil
+									puts "#{(pretty_iw [pair])[0]} #{res['edit']['result']=="Success" ? 'saved' : 'failure!!!' rescue 'failure!!!'}"
+								else
+									puts "#{(pretty_iw [pair])[0]} - no changes needed"
+								end
 								
 								gets
 							end
@@ -320,10 +325,13 @@ class InterwikiConflictSolver
 
 		do_log_in = (user!='' and pass!='')
 		@logged_in = login_all(user, pass) if do_log_in
+		
 		pass = nil
+		@user = user
+		
 		puts(@logged_in ? 'logged in.' : 'preview-only mode.')
 		
-		@summary_base = "semiautomatically fixing interwiki conflicts (trouble?: [[pl:User talk:#{user}]])"
+		@summary_base = "semiautomatically fixing interwiki conflicts (trouble?: [[pl:User talk:#{@user}]])"
 		@summary = @summary_base
 		
 		while true
