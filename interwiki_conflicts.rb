@@ -152,87 +152,79 @@ class InterwikiConflictSolver
 		end
 	end
 	
-	def process_command line
-		case line
-		when ''
-			# pass
-			
-		when 'help'
-			puts 'commands:'
-			puts [
-				'help',
-				'show',
-				'showg',
-				'summary <text>',
-				'linksto <lang> <title>',
-				'linksfrom <lang> <title>',
-				'start <lang> <title>',
-				'start <lang>',
-				'rename <group> <group>',
-				'move <lang> <regex> <group>',
-				'move * <regex> <group>',
-				'gather <lang> <title>',
-				'commit',
-				'exit',
-			]
-			
-		when 'exit'
-			exit
-			
-		when 'show'
-			@all.each do |pair|
-				puts "#{pair.join(':').encode('cp852', undef: :replace).ljust 40, '.'}#{@groups[pair].encode('cp852', undef: :replace)}"
-			end
-			
-		when 'showg'
-			lists_per_group = {} # {groupname => [pairs]}
-			@groups.each_pair do |pair, group|
-				lists_per_group[group] ||= []
-				lists_per_group[group] << pair
-			end
-			lists_per_group.each_value{|gr| gr.sort!}
-			
-			lists_per_group.each_pair do |group, pairs|
-				puts ">>> #{group}"
-				puts pretty_iw pairs
-				puts ''
-			end
-			
-		when /\Asummary (.+)\Z/
-			@summary = [@summary_base, $1].join ' - '
-			@sf.each_with_index do |kv, i|
-				wiki, s = *kv
-				s.summary = @summary
-			end
-			
-		when /\Alinksfrom ([a-z-]+) (.+)\Z/
-			wiki, title = $1, $2
-			puts pretty_iw @linksfrom[ [wiki, title] ]
-			
-		when /\Alinksto ([a-z-]+) (.+)\Z/
-			wiki, title = $1, $2
-			puts pretty_iw @linksto[ [wiki, title] ]
+	def command_help
+		puts 'commands:'
+		puts [
+			'help',
+			'show',
+			'showg',
+			'summary <text>',
+			'linksto <lang> <title>',
+			'linksfrom <lang> <title>',
+			'start <lang> <title>',
+			'start <lang>',
+			'rename <group> <group>',
+			'move <lang> <regex> <group>',
+			'move * <regex> <group>',
+			'gather <lang> <title>',
+			'commit',
+			'exit',
+		]
+	end
+	
+	def command_exit
+		exit
+	end
+	
+	def command_show
+		@all.each do |pair|
+			puts "#{pair.join(':').encode('cp852', undef: :replace).ljust 40, '.'}#{@groups[pair].encode('cp852', undef: :replace)}"
+		end
+	end
+	
+	def command_showg
+		lists_per_group = {} # {groupname => [pairs]}
+		@groups.each_pair do |pair, group|
+			lists_per_group[group] ||= []
+			lists_per_group[group] << pair
+		end
+		lists_per_group.each_value{|gr| gr.sort!}
 		
-		when /\Astart \*\Z/
-			@all.each{|wiki, title| Launchy.open "http://#{wiki}.wikipedia.org/w/index.php?title=#{CGI.escape title}" }
-			
-		when /\Astart ([a-z-]+) (.+)\Z/, /\Astart ([a-z-]+)\Z/
-			wiki, title = $1, $2
-			pairs = title ? [wiki, title] : @all.select{|pair| pair[0]==wiki}
-			
-			pairs.each{|wiki, title| Launchy.open "http://#{wiki}.wikipedia.org/w/index.php?title=#{CGI.escape title}" }
-			
-		when /\Amove \* (.+?) ([a-z0-9]+)\Z/, /\Amove \* ()([a-z0-9]+)\Z/
-			name_reg, target_group = /#{$1}/i, $2
-			
+		lists_per_group.each_pair do |group, pairs|
+			puts ">>> #{group}"
+			puts pretty_iw pairs
+			puts ''
+		end
+	end
+	
+	def command_summary summ
+		@summary = [@summary_base, summ].join ' - '
+		@sf.each_with_index do |kv, i|
+			wiki, s = *kv
+			s.summary = @summary
+		end
+	end
+	
+	def command_linksfrom wiki, title
+		puts pretty_iw @linksfrom[ [wiki, title] ]
+	end
+	
+	def command_linksto wiki, title
+		puts pretty_iw @linksto[ [wiki, title] ]
+	end
+	
+	def command_start wiki
+		pairs = wiki=='*' ? @all : @all.select{|pair| pair[0] == wiki}
+		pairs.each{|wiki, title| Launchy.open "http://#{wiki}.wikipedia.org/w/index.php?title=#{CGI.escape title}" }
+	end
+	
+	def command_move wiki, name_reg, target_group
+		if wiki == '*'
 			got = @all.select{|pair| name_reg=~pair[1]}
 			got.each do |pair|
 				@groups[pair] = target_group
 			end
-		
-		when /\Amove ([a-z-]+) (.+?) ([a-z0-9]+)\Z/, /\Amove ([a-z-]+) ()([a-z0-9]+)\Z/
-			wiki, name_reg, target_group = $1, /#{$2}/i, $3
-			
+		else
 			got = @all.select{|pair| pair[0]==wiki and name_reg=~pair[1]}
 			if got.length==1
 				pair = got[0]
@@ -242,73 +234,139 @@ class InterwikiConflictSolver
 			else
 				puts 'uh oh. multiple matches!'
 			end
-		
-		when /\Agather ([a-z-]+) (.+)\Z/
-			wiki, title = $1, $2
-			gather_from wiki, title
-			
-		when /\Arename ([a-z0-9]+) ([a-z0-9]+)\Z/, /\Amerge ([a-z0-9]+) ([a-z0-9]+)\Z/
-			from, to = $1, $2
-			@groups.each_key do |k|
-				@groups[k] = to if @groups[k]==from
-			end
-			
-		when /\Afind ([a-z\-,]+|\*) (.+)\Z/,  /\Afind ([a-z\-,]+|\*)\Z/
-			wiki, selector = $1, $2
-			puts pretty_iw find_all_matching(wiki, selector)
-			
-		when 'commit'
-			if @logged_in
-				puts "are you sure you know what you're doing? (yes/no)"
-				if gets.strip.downcase=='yes'
-					lists_per_group = {} # {groupname => [pairs]}
-					@groups.each_pair do |pair, group|
-						lists_per_group[group] ||= []
-						lists_per_group[group] << pair
-					end
-					lists_per_group.each_value{|gr| gr.sort!}
+		end
+	end
+	
+	def command_gather wiki, title
+		gather_from wiki, title
+	end
+	
+	def command_rename from, to
+		@groups.each_key do |k|
+			@groups[k] = to if @groups[k]==from
+		end
+	end
+	
+	def command_find wiki, selector
+		puts pretty_iw find_all_matching(wiki, selector)
+	end
+	
+	def command_commit
+		if @logged_in
+			puts "are you sure you know what you're doing? (yes/no)"
+			if gets.strip.downcase=='yes'
+				lists_per_group = {} # {groupname => [pairs]}
+				@groups.each_pair do |pair, group|
+					lists_per_group[group] ||= []
+					lists_per_group[group] << pair
+				end
+				lists_per_group.each_value{|gr| gr.sort!}
+				
+				# pp lists_per_group
+				# gets
+				
+				clear_iw_regex = /\[\[(?:#{@all.map{|a| a[0]}.uniq.join '|'}):.+?\]\](?:\r?\n)?/
+				# p clear_iw_regex
+				# gets
+				
+				lists_per_group.each_pair do |group, pairs|
+					next if group=='donttouch' or group=~/\Areached from/
+					puts group+'...'
 					
-					# pp lists_per_group
-					# gets
-					
-					clear_iw_regex = /\[\[(?:#{@all.map{|a| a[0]}.uniq.join '|'}):.+?\]\](?:\r?\n)?/
-					# p clear_iw_regex
-					# gets
-					
-					lists_per_group.each_pair do |group, pairs|
-						next if group=='donttouch' or group=~/\Areached from/
-						puts group+'...'
+					pairs.each do |pair|
+						wiki, title = *pair
+						page = Page.new title, wiki
 						
-						pairs.each do |pair|
-							wiki, title = *pair
-							page = Page.new title, wiki
+						if page.text.scan(clear_iw_regex).sort == pretty_iw(pairs-[pair]).sort
+							puts "#{(pretty_iw [pair])[0]} - no changes needed"
+						else
+							page.text = (page.text.gsub clear_iw_regex, '').strip
+							page.text += "\n\n" + pretty_iw(pairs-[pair]).join("\n") unless group=='clear'
 							
-							if page.text.scan(clear_iw_regex).sort == pretty_iw(pairs-[pair]).sort
-								puts "#{(pretty_iw [pair])[0]} - no changes needed"
+							res = page.save
+							if res != nil
+								puts "#{(pretty_iw [pair])[0]} #{res['edit']['result']=="Success" ? 'saved' : 'failure!!!' rescue 'failure!!!'}"
 							else
-								page.text = (page.text.gsub clear_iw_regex, '').strip
-								page.text += "\n\n" + pretty_iw(pairs-[pair]).join("\n") unless group=='clear'
-								
-								res = page.save
-								if res != nil
-									puts "#{(pretty_iw [pair])[0]} #{res['edit']['result']=="Success" ? 'saved' : 'failure!!!' rescue 'failure!!!'}"
-								else
-									puts "#{(pretty_iw [pair])[0]} - no changes needed"
-								end
-								
-								gets
+								puts "#{(pretty_iw [pair])[0]} - no changes needed"
 							end
+							
+							gets
 						end
 					end
-					
-					puts 'done!'
-					
-				else
-					puts 'aborted.'
 				end
+				
+				puts 'done!'
+				
 			else
-				puts 'not logged in!'
+				puts 'aborted.'
 			end
+		else
+			puts 'not logged in!'
+		end
+	end
+	
+	def command_login
+		if @logged_in
+			puts "already logged in as #{@user}"
+		else
+			puts 'log in to edit (leave empty to just preview):'
+			puts '[password will be visible!]'
+			print 'username: '; user = gets.strip
+			print 'password: '; pass = gets.strip
+
+			do_log_in = (user!='' and pass!='')
+			if do_log_in
+				@logged_in = login_all(user, pass) 
+				@user = user
+				puts 'logged in.'
+			else
+				puts 'did nothing.'
+			end
+		end
+	end
+	
+	def process_command line
+		case line
+		when ''
+			# pass
+			
+		when 'help'; command_help
+			
+		when 'exit'; command_exit
+			
+		when 'show'; command_show
+			
+		when 'showg'; command_showg
+			
+		when /\Asummary (.+)\Z/
+			command_summary $1
+			
+		when /\Alinksfrom ([a-z-]+) (.+)\Z/
+			command_linksfrom $1, $2
+			
+		when /\Alinksto ([a-z-]+) (.+)\Z/
+			command_linksto $1, $2
+		
+		when /\Astart (\*|[a-z-]+)\Z/
+			command_start $1
+			
+		when /\Amove (\*|[a-z-]+) (.+?) ([a-z0-9]+)\Z/, /\Amove (\*|[a-z-]+) ()([a-z0-9]+)\Z/
+			command_move $1, /#{$2}/i, $3
+		
+		when /\Agather ([a-z-]+) (.+)\Z/
+			command_gather $1, $2
+			
+		when /\A(?:rename|merge) ([a-z0-9]+) ([a-z0-9]+)\Z/
+			command_rename $1, $2
+			
+		when /\Afind ([a-z\-,]+|\*) (.+)\Z/,  /\Afind ([a-z\-,]+|\*)\Z/
+			command_find $1, $2
+			
+		when 'commit'
+			command_commit
+			
+		when 'login'
+			command_login
 			
 		else
 			puts "d'oh? incorrect command."
@@ -318,18 +376,8 @@ class InterwikiConflictSolver
 	def busy_loop
 		puts "#{@all.length} articles in #{@sf.length} languages."
 		puts ''
-
-		puts 'log in to edit (leave empty to just preview):'
-		print 'username: '; user = gets.strip
-		print 'password: '; pass = gets.strip
-
-		do_log_in = (user!='' and pass!='')
-		@logged_in = login_all(user, pass) if do_log_in
 		
-		pass = nil
-		@user = user
-		
-		puts(@logged_in ? 'logged in.' : 'preview-only mode.')
+		command_login
 		
 		@summary_base = "semiautomatically fixing interwiki conflicts (trouble?: [[pl:User talk:#{@user}]])"
 		@summary = @summary_base
