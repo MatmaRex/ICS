@@ -198,11 +198,7 @@ class InterwikiConflictSolver
 	end
 	
 	def command_summary summ
-		@summary = [@summary_base, summ].join ' - '
-		@sf.each_with_index do |kv, i|
-			wiki, s = *kv
-			s.summary = @summary
-		end
+		@summary_user = summ.to_s
 	end
 	
 	def command_linksfrom wiki, title
@@ -269,6 +265,19 @@ class InterwikiConflictSolver
 				# p clear_iw_regex
 				# gets
 				
+				if !@summary_user
+					puts 'no summary given.'
+					return
+				end
+				
+				@summary_base = "semiautomatically fixing interwiki conflicts (trouble?: [[#{@homewiki}:User talk:#{@user}]])"
+				@summary = @summary_base + ' - ' + @summary_user
+				
+				@sf.each_with_index do |kv, i|
+					wiki, s = *kv
+					s.summary = @summary
+				end
+				
 				lists_per_group.each_pair do |group, pairs|
 					next if group=='donttouch' or group=~/\Areached from/
 					puts group+'...'
@@ -307,10 +316,11 @@ class InterwikiConflictSolver
 	
 	def command_login
 		if @logged_in
-			puts "already logged in as #{@user}"
+			puts "already logged in as #{@user} on #{@homewiki}"
 		else
 			puts 'log in to edit (leave empty to just preview):'
 			puts '[password will be visible!]'
+			print 'homewiki: '; home = gets.strip
 			print 'username: '; user = gets.strip
 			print 'password: '; pass = gets.strip
 
@@ -318,6 +328,7 @@ class InterwikiConflictSolver
 			if do_log_in
 				@logged_in = login_all(user, pass) 
 				@user = user
+				@homewiki = home
 				puts 'logged in.'
 			else
 				puts 'did nothing.'
@@ -378,9 +389,6 @@ class InterwikiConflictSolver
 		puts ''
 		
 		command_login
-		
-		@summary_base = "semiautomatically fixing interwiki conflicts (trouble?: [[pl:User talk:#{@user}]])"
-		@summary = @summary_base
 		
 		while true
 			print '> '
