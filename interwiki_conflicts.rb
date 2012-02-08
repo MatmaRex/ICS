@@ -18,6 +18,7 @@ class InterwikiConflictSolver
 		@linksto = {}
 		
 		@summary = @summary_base = ''
+		@logged_in_wikis = []
 	end
 	
 	# Creates a Sunflower with customized settings and returns it; keeps a cache.
@@ -76,6 +77,7 @@ class InterwikiConflictSolver
 			end
 		end
 		
+		puts 'checking redirects...'
 		results = (follow_redirects results).uniq
 		@all += results
 		@all.uniq!
@@ -112,8 +114,9 @@ class InterwikiConflictSolver
 		pairs.map{|a| "[[#{a.join ':'}]]"}
 	end
 	
-	# Log in all wikis. Returns true on success.
+	# Log in all wikis. Returns true on success. (Which is currently always.)
 	def login_all user, pass
+		@logged_in_wikis = []
 		puts 'logging in... (wait)'
 		i = 0
 		@sf.p_each(5) do |kv|
@@ -121,8 +124,11 @@ class InterwikiConflictSolver
 			s.login CGI.escape(user), CGI.escape(pass)
 			
 			print "#{i+1}/#{@sf.length}\r"
+			@logged_in_wikis << wiki
 			i+=1
 		end
+		
+		@logged_in_wikis.sort!; @logged_in_wikis.uniq!
 		return true
 	end
 	
@@ -248,91 +254,93 @@ class InterwikiConflictSolver
 	end
 	
 	def command_commit
-		if @logged_in
-			puts "are you sure you know what you're doing? (yes/no)"
-			if gets.strip.downcase=='yes'
-				lists_per_group = {} # {groupname => [pairs]}
-				@groups.each_pair do |pair, group|
-					lists_per_group[group] ||= []
-					lists_per_group[group] << pair
-				end
-				lists_per_group.each_value{|gr| gr.sort!}
+		puts "are you sure you know what you're doing? (yes/no)"
+		if gets.strip.downcase=='yes'
+			# make sure everything is okay
+			if !@summary_user
+				puts 'no summary given.'
+				return
+			end
+			
+			if @logged_in_wikis != @all.map{|a| a[0]}.uniq.sort
+				puts 'you have not yet logged in into all wikis. do it now:'
+				return if !do_login
+			end
+			
+			@summary_base = "semiautomatically fixing interwiki conflicts (trouble?: [[#{@homewiki}:User talk:#{@user}]])"
+			@summary = @summary_base + ' - ' + @summary_user
+			
+			@sf.each_with_index do |kv, i|
+				wiki, s = *kv
+				s.summary = @summary
+			end
+			
+			# right. all is well. we should not fail beyond this point...
+			lists_per_group = {} # {groupname => [pairs]}
+			@groups.each_pair do |pair, group|
+				lists_per_group[group] ||= []
+				lists_per_group[group] << pair
+			end
+			lists_per_group.each_value{|gr| gr.sort!}
+			
+			clear_iw_regex = /\[\[(?:#{@all.map{|a| a[0]}.uniq.join '|'}):.+?\]\](?:\r?\n)?/
+			
+			
+			lists_per_group.each_pair do |group, pairs|
+				next if group=='donttouch' or group=~/\Areached from/
+				puts group+'...'
 				
-				# pp lists_per_group
-				# gets
-				
-				clear_iw_regex = /\[\[(?:#{@all.map{|a| a[0]}.uniq.join '|'}):.+?\]\](?:\r?\n)?/
-				# p clear_iw_regex
-				# gets
-				
-				if !@summary_user
-					puts 'no summary given.'
-					return
-				end
-				
-				@summary_base = "semiautomatically fixing interwiki conflicts (trouble?: [[#{@homewiki}:User talk:#{@user}]])"
-				@summary = @summary_base + ' - ' + @summary_user
-				
-				@sf.each_with_index do |kv, i|
-					wiki, s = *kv
-					s.summary = @summary
-				end
-				
-				lists_per_group.each_pair do |group, pairs|
-					next if group=='donttouch' or group=~/\Areached from/
-					puts group+'...'
+				pairs.each do |pair|
+					wiki, title = *pair
+					page = Page.new title, wiki
 					
-					pairs.each do |pair|
-						wiki, title = *pair
-						page = Page.new title, wiki
+					if page.text.scan(clear_iw_regex).sort == pretty_iw(pairs-[pair]).sort
+						puts "#{(pretty_iw [pair])[0]} - no changes needed"
+					else
+						page.text = (page.text.gsub clear_iw_regex, '').strip
+						page.text += "\n\n" + pretty_iw(pairs-[pair]).join("\n") unless group=='clear'
 						
-						if page.text.scan(clear_iw_regex).sort == pretty_iw(pairs-[pair]).sort
-							puts "#{(pretty_iw [pair])[0]} - no changes needed"
+						res = page.save
+						if res != nil
+							puts "#{(pretty_iw [pair])[0]} #{res['edit']['result']=="Success" ? 'saved' : 'failure!!!' rescue 'failure!!!'}"
 						else
-							page.text = (page.text.gsub clear_iw_regex, '').strip
-							page.text += "\n\n" + pretty_iw(pairs-[pair]).join("\n") unless group=='clear'
-							
-							res = page.save
-							if res != nil
-								puts "#{(pretty_iw [pair])[0]} #{res['edit']['result']=="Success" ? 'saved' : 'failure!!!' rescue 'failure!!!'}"
-							else
-								puts "#{(pretty_iw [pair])[0]} - no changes needed"
-							end
-							
-							gets
+							puts "#{(pretty_iw [pair])[0]} - no changes needed"
 						end
+						
+						gets
 					end
 				end
-				
-				puts 'done!'
-				
-			else
-				puts 'aborted.'
 			end
+			
+			puts 'done!'
+			
 		else
-			puts 'not logged in!'
+			puts 'aborted.'
 		end
 	end
 	
-	def command_login
-		if @logged_in
-			puts "already logged in as #{@user} on #{@homewiki}"
-		else
-			puts 'log in to edit (leave empty to just preview):'
-			puts '[password will be visible!]'
-			print 'homewiki: '; home = gets.strip
-			print 'username: '; user = gets.strip
-			print 'password: '; pass = gets.strip
+	def do_login
+		puts 'log in to edit (leave empty to just preview):'
+		puts '[password will be visible!]'
+		print 'homewiki: '; home = gets.strip
+		print 'username: '; user = gets.strip
+		print 'password: '; pass = gets.strip
 
-			do_log_in = (user!='' and pass!='')
-			if do_log_in
+		do_log_in = (user!='' and pass!='')
+		if do_log_in
+			begin
 				@logged_in = login_all(user, pass) 
 				@user = user
 				@homewiki = home
 				puts 'logged in.'
-			else
-				puts 'did nothing.'
+				return true
+			rescue SunflowerError
+				puts 'wrong username or password.'
+				return false
 			end
+		else
+			puts 'did nothing.'
+			return false
 		end
 	end
 	
@@ -376,20 +384,12 @@ class InterwikiConflictSolver
 		when 'commit'
 			command_commit
 			
-		when 'login'
-			command_login
-			
 		else
 			puts "d'oh? incorrect command."
 		end
 	end
 	
 	def busy_loop
-		puts "#{@all.length} articles in #{@sf.length} languages."
-		puts ''
-		
-		command_login
-		
 		while true
 			print '> '
 			read = gets.strip
