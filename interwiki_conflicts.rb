@@ -319,6 +319,14 @@ class InterwikiConflictSolver
 		end
 	end
 	
+	def command_do code
+		begin
+			p eval code
+		rescue Exception
+			p $!
+		end
+	end
+	
 	def do_login
 		puts 'log in to edit (leave empty to just preview):'
 		puts '[password will be visible!]'
@@ -383,6 +391,9 @@ class InterwikiConflictSolver
 			
 		when 'commit'
 			command_commit
+			
+		when /\Ado (.+)\Z/
+			command_do $1
 			
 		else
 			puts "d'oh? incorrect command."
