@@ -257,27 +257,15 @@ class InterwikiConflictSolver
 		puts pretty_iw @linksto[ [wiki, title] ]
 	end
 	
-	def command_start wiki
-		pairs = wiki=='*' ? @all : @all.select{|pair| pair[0] == wiki}
+	def command_start wiki_s, title_s
+		pairs = find_all_matching wiki_s, title_s
 		pairs.each{|wiki, title| Launchy.open "http://#{wiki}.wikipedia.org/w/index.php?title=#{CGI.escape title}" }
 	end
 	
-	def command_move wiki, name_reg, target_group
-		if wiki == '*'
-			got = @all.select{|pair| name_reg=~pair[1]}
-			got.each do |pair|
-				@groups[pair] = target_group
-			end
-		else
-			got = @all.select{|pair| pair[0]==wiki and name_reg=~pair[1]}
-			if got.length==1
-				pair = got[0]
-				@groups[pair] = target_group
-			elsif got.empty?
-				puts 'uh oh. no matches!'
-			else
-				puts 'uh oh. multiple matches!'
-			end
+	def command_move wiki_s, title_s, target_group
+		got = find_all_matching wiki_s, title_s
+		got.each do |pair|
+			@groups[pair] = target_group
 		end
 	end
 	
@@ -291,8 +279,8 @@ class InterwikiConflictSolver
 		end
 	end
 	
-	def command_find wiki, selector
-		puts pretty_iw find_all_matching(wiki, selector)
+	def command_find wiki_s, title_s
+		puts pretty_iw find_all_matching(wiki_s, title_s)
 	end
 	
 	def command_commit
@@ -416,11 +404,11 @@ class InterwikiConflictSolver
 		when /\Alinksto ([a-z-]+) (.+)\Z/
 			command_linksto $1, $2
 		
-		when /\Astart (\*|[a-z-]+)\Z/
-			command_start $1
+		when /\Astart (\*|[a-z,-]+)(?: (.+))?\Z/
+			command_start $1, $2
 			
-		when /\Amove (\*|[a-z-]+) (.+?) ([a-z0-9]+)\Z/, /\Amove (\*|[a-z-]+) ()([a-z0-9]+)\Z/
-			command_move $1, /#{$2}/i, $3
+		when /\Amove (\*|[a-z,-]+)(?: (.+))? ([a-z0-9]+)\Z/
+			command_move $1, $2, $3
 		
 		when /\Agather ([a-z-]+) (.+)\Z/
 			command_gather $1, $2
@@ -428,7 +416,7 @@ class InterwikiConflictSolver
 		when /\A(?:rename|merge) ([a-z0-9]+) ([a-z0-9]+)\Z/
 			command_rename $1, $2
 			
-		when /\Afind ([a-z\-,]+|\*) (.+)\Z/,  /\Afind ([a-z\-,]+|\*)\Z/
+		when /\Afind (\*|[a-z,-]+)(?: (.+))?\Z/
 			command_find $1, $2
 			
 		when 'commit'
