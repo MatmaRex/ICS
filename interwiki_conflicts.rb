@@ -173,23 +173,50 @@ class InterwikiConflictSolver
 	end
 	
 	def command_help
-		puts 'commands:'
-		puts [
-			'help',
-			'show',
-			'showg',
-			'summary <text>',
-			'linksto <lang> <title>',
-			'linksfrom <lang> <title>',
-			'start <lang> <title>',
-			'start <lang>',
-			'rename <group> <group>',
-			'move <lang> <regex> <group>',
-			'move * <regex> <group>',
-			'gather <lang> <title>',
-			'commit',
-			'exit',
-		]
+		puts <<-EOF.gsub(/^\t\t/, '').gsub(/^(\t+)/){'  ' * $1.length}
+		Available commands:
+			help
+				Shows this message.
+			summary <text>
+				Sets the summary for your edits.
+			gather <lang> <title>
+				Starting from given article, finds all that can be reached via interwiki links.
+			show
+				Shows list of all articles on all wikis that you are about to edit interwiki on.
+			showg
+				As above, by groups.
+			find <~lang> <~title>
+				Finds all article titles matching given selectors (see below).
+			move <~lang> <~title> <group>
+				Moves article(s) to group.
+			start <~lang> <~title>
+				Opens articles(s) Wiki pages in default browser.
+			rename <group> <group>
+			merge <group> <group>
+				Renames group, or merges two groups together.
+			commit
+				Saves your changes on all wikis. Prompts you for username and password.
+			linksto <lang> <title>
+				Lists articles from which you can currently reach given article.
+			linksfrom <lang> <title>
+				Lists articles reachable from given article.
+			exit
+				Exits the tool.
+		
+		Formats used above:
+			<lang>
+				Wikipedia language code, for example en, de, or be-x-old.
+			<title>
+				Title of Wiki article, without language prefix. Effectively anything.
+			<group>
+				A name of group. Only loewrcase letters (a-z) and numbers.
+			<text>
+				Any text.
+			<~lang>
+				Language selector - a single language, comma-separated list of languages, or an asterisk * - every language.
+			<~title>
+				Title selector - nothing (matches all), comma-separated list of numbers, regular expression, or title substring.
+		EOF
 	end
 	
 	def command_exit
