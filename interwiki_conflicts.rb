@@ -33,6 +33,7 @@ class InterwikiConflictSolver
 		return @sf[wiki]
 	end
 	
+	# Recursively finds articles interwikilinked from the starting one.
 	def gather_from wiki, article, modify_group_names=true
 		start_pair = [wiki, article]
 		if @all.include? start_pair
@@ -109,7 +110,7 @@ class InterwikiConflictSolver
 	end
 	
 	
-	
+	# Pretty-prints wikilinks; returns an array!
 	def pretty_iw pairs
 		pairs.map{|a| "[[#{a.join ':'}]]"}
 	end
@@ -132,6 +133,19 @@ class InterwikiConflictSolver
 		return true
 	end
 	
+	# Finds all articles that match specific criteria.
+	# 
+	# Possible syntaxes for wiki are:
+	#   * an asterisk - all wikis
+	#   * comma-separated list - exactly these wikis
+	#   * single wiki
+	# 
+	# Possible syntaxes for selector are:
+	#   * nothing - returns everything matching wiki criteria
+	#   * comma-separated list of numbers - exactly these entries
+	#   * /regexp/ - entries matching the regexp (case-insensitive)
+	#   * other - entries where it is a substring (case-insensitive)
+	# 
 	def find_all_matching wiki, selector=nil
 		allowed_wikis = case wiki
 		when '*'
@@ -198,7 +212,7 @@ class InterwikiConflictSolver
 		
 		lists_per_group.each_pair do |group, pairs|
 			puts ">>> #{group}"
-			puts pretty_iw pairs
+			puts pretty_iw(pairs).map{|ln| ln.encode('cp852', undef: :replace)}
 			puts ''
 		end
 	end
