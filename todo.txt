@@ -1,3 +1,0 @@
-* help
-* generic find_matching(wiki, regex) function
-* gui?
