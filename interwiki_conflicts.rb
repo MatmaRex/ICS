@@ -157,9 +157,10 @@ class InterwikiConflictSolver
 		end
 		
 		initial_list = @all.select{|pair| allowed_wikis.include? pair[0]}
-		return initial_list if !selector
 		
-		if selector =~ /\A[\d,]+\Z/
+		if !selector or selector.strip == ''
+			return initial_list
+		elsif selector =~ /\A[\d,]+\Z/
 			return initial_list.values_at *selector.split(',').map(&:to_i)
 		else
 			if selector[0]=='/' and selector[-1]=='/'
