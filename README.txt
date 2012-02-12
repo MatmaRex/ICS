@@ -2,6 +2,8 @@ InterwikiConflictSolver is a tool to ease the pain of disentangling tangled inte
 
 Run `ruby interwiki_conflicts.rb` and type in 'help' to get started. (You will need the following gems first: sunflower, launchy, parallel-each.)
 
+You can provide an argument - encoding in which ICS will output strings. Default is cp852 (Windows Central European), you can change it to, for example, utf-8.
+
 .exe files are packaged using Ocra.
 
 

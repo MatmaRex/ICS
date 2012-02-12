@@ -8,7 +8,9 @@ require 'pp'
 
 class InterwikiConflictSolver
 	attr_accessor :all, :groups, :summary
-	def initialize
+	def initialize opts
+		@enc = opts[:output_encoding]
+		
 		@sf = {}
 		
 		@all = []
@@ -226,7 +228,7 @@ class InterwikiConflictSolver
 	
 	def command_show
 		@all.each do |pair|
-			puts "#{pair.join(':').encode('cp852', undef: :replace).ljust 40, '.'}#{@groups[pair].encode('cp852', undef: :replace)}"
+			puts "#{pair.join(':').encode(@enc, undef: :replace).ljust 40, '.'}#{@groups[pair].encode(@enc, undef: :replace)}"
 		end
 	end
 	
@@ -240,7 +242,7 @@ class InterwikiConflictSolver
 		
 		lists_per_group.each_pair do |group, pairs|
 			puts ">>> #{group}"
-			puts pretty_iw(pairs).map{|ln| ln.encode('cp852', undef: :replace)}
+			puts pretty_iw(pairs).map{|ln| ln.encode(@enc, undef: :replace)}
 			puts ''
 		end
 	end
@@ -449,11 +451,6 @@ end
 
 
 if __FILE__ == $0
-	start_pairs = ARGV.map{|title| title.split(':', 2) }
-
-	iw = InterwikiConflictSolver.new
-	iw.gather_from_many start_pairs
-	ARGV.pop until ARGV.empty?
-
+	iw = InterwikiConflictSolver.new(output_encoding: ARGV.pop || 'cp852')
 	iw.busy_loop
 end
