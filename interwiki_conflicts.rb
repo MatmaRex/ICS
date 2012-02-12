@@ -432,9 +432,14 @@ class InterwikiConflictSolver
 	
 	def busy_loop
 		while true
-			print '> '
-			read = gets.strip
-			process_command read
+			begin
+				print '> '
+				read = gets.strip
+				process_command read
+			rescue SyntaxError, StandardError => e
+				puts 'whoops. something broke. the error is: '+e.to_s
+				puts e.backtrace
+			end
 		end
 	end
 end
