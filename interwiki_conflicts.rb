@@ -36,12 +36,8 @@ class InterwikiConflictSolver
 	end
 	
 	# Finds articles interwikilinked from the starting one.
-	def gather_from wiki, article, modify_group_names=true
+	def gather_from wiki, article, to_group=nil
 		start_pair = [wiki, article]
-		if @all.include? start_pair
-			puts "skipping #{start_pair.join ':'} - already reached"
-			return
-		end
 		
 		results = []
 		results << start_pair
@@ -51,6 +47,11 @@ class InterwikiConflictSolver
 		
 		i = 1
 		while now = queue.shift
+			if @all.include? now
+				puts "skipping #{now.join ':'} - already reached"
+				next
+			end
+			
 			wiki, article = *now
 			puts "#{wiki.ljust 8} #{queue.length} left"
 			
@@ -81,10 +82,8 @@ class InterwikiConflictSolver
 		@all.sort!
 		
 		results.each do |pair|
-			if @groups[pair]
-				@groups[pair] += ', '+(start_pair.join ':') if modify_group_names
-			else
-				@groups[pair] = "reached from #{start_pair.join ':'}"
+			if !@groups[pair]
+				@groups[pair] = to_group || "reached from #{start_pair.join ':'}"
 			end
 		end
 	end
@@ -176,8 +175,8 @@ class InterwikiConflictSolver
 				Shows this message.
 			summary <text>
 				Sets the summary for your edits.
-			gather <lang> <title>
-				Starting from given article, finds all that can be reached via interwiki links.
+			gather <lang> <title> <group[opt]>
+				Starting from given article, finds all that can be reached via interwiki links. Optionally puts them into group.
 			show
 				Shows list of all articles on all wikis that you are about to edit interwiki on.
 			showg
@@ -275,8 +274,8 @@ class InterwikiConflictSolver
 		end
 	end
 	
-	def command_gather wiki, title
-		gather_from wiki, title
+	def command_gather wiki, title, to_group=nil
+		gather_from wiki, title, (to_group && to_group.strip!='' ? to_group : nil)
 	end
 	
 	def command_rename from, to
@@ -320,6 +319,8 @@ class InterwikiConflictSolver
 			
 			clear_iw_regex = /\[\[(?:#{@all.map{|a| a[0]}.uniq.join '|'}):.+?\]\](?:\r?\n)?/
 			
+			continue = false
+			noticeshown = false
 			
 			lists_per_group.each_pair do |group, pairs|
 				next if group=='donttouch' or group=~/\Areached from/
@@ -342,7 +343,14 @@ class InterwikiConflictSolver
 							puts "#{(pretty_iw [pair])[0]} - no changes needed"
 						end
 						
-						gets
+						if !continue
+							if !noticeshown
+								noticeshown = true
+								puts "press enter to continue with next article; type in 'ok' and press enter to continue with all"
+							end
+							m = gets.strip.downcase
+							continue = (m == 'ok')
+						end
 					end
 				end
 			end
@@ -418,8 +426,8 @@ class InterwikiConflictSolver
 		when /\Amove (\*|[a-z,-]+)(?: (.+))? ([a-z0-9]+)\Z/
 			command_move $1, $2, $3
 		
-		when /\Agather ([a-z-]+) (.+)\Z/
-			command_gather $1, $2
+		when /\Agather ([a-z-]+) (.+)(?: ([a-z0-9]+))?\Z/
+			command_gather $1, $2, $3
 			
 		when /\A(?:rename|merge) ([a-z0-9]+) ([a-z0-9]+)\Z/
 			command_rename $1, $2
