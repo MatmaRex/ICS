@@ -35,7 +35,7 @@ class InterwikiConflictSolver
 		return @sf[wiki]
 	end
 	
-	# Recursively finds articles interwikilinked from the starting one.
+	# Finds articles interwikilinked from the starting one.
 	def gather_from wiki, article, modify_group_names=true
 		start_pair = [wiki, article]
 		if @all.include? start_pair
@@ -44,16 +44,10 @@ class InterwikiConflictSolver
 		end
 		
 		results = []
-		results << [wiki, article]
+		results << start_pair
 		
-		
-		s = get_sf wiki
-		res = s.API action:'query', prop:'langlinks', lllimit:500, titles:article
-		
-		iwlinks = (res['query']['pages'].first['langlinks']||[]).map{|hsh| [ hsh['lang'], hsh['*'] ] }
-		
-		results += iwlinks
-		queue = iwlinks.dup
+		queue = []
+		queue << start_pair
 		
 		i = 1
 		while now = queue.shift
