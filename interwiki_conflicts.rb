@@ -299,8 +299,7 @@ class InterwikiConflictSolver
 				return if !do_login
 			end
 			
-			@summary_base = "semiautomatically fixing interwiki conflicts (trouble?: [[#{@homewiki}:User talk:#{@user}]])"
-			@summary = @summary_base + ' - ' + @summary_user
+			@summary = "semiautomatically fixing interwiki conflicts using [[pl:User:Matma Rex/ICS|ICS]]: #{@summary_user} (trouble?: [[#{@homewiki}:User talk:#{@user}]])"
 			
 			@sf.each_with_index do |kv, i|
 				wiki, s = *kv
