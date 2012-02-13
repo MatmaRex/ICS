@@ -188,6 +188,8 @@ class InterwikiConflictSolver
 				Moves article(s) to group.
 			start <~lang> <~title>
 				Opens articles(s) Wiki pages in default browser.
+			starttr <~lang> <~title>
+				Opens Google Translate for articles(s) in default browser.
 			rename <group> <group>
 			merge <group> <group>
 				Renames group, or merges two groups together.
@@ -256,6 +258,14 @@ class InterwikiConflictSolver
 	def command_start wiki_s, title_s
 		pairs = find_all_matching wiki_s, title_s
 		pairs.each{|wiki, title| Launchy.open "http://#{wiki}.wikipedia.org/w/index.php?title=#{CGI.escape title}" }
+	end
+	
+	def command_starttr wiki_s, title_s
+		pairs = find_all_matching wiki_s, title_s
+		pairs.each{|wiki, title|
+			wikiurl = "http://#{wiki}.wikipedia.org/w/index.php?title=#{CGI.escape title}"
+			Launchy.open "http://translate.google.com/translate?sl=#{wiki}&u=#{CGI.escape wikiurl}"
+		}
 	end
 	
 	def command_move wiki_s, title_s, target_group
@@ -401,6 +411,9 @@ class InterwikiConflictSolver
 		
 		when /\Astart (\*|[a-z,-]+)(?: (.+))?\Z/
 			command_start $1, $2
+			
+		when /\Astarttr (\*|[a-z,-]+)(?: (.+))?\Z/
+			command_starttr $1, $2
 			
 		when /\Amove (\*|[a-z,-]+)(?: (.+))? ([a-z0-9]+)\Z/
 			command_move $1, $2, $3
