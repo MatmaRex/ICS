@@ -2,6 +2,11 @@
 require 'sunflower'
 require 'launchy'
 require 'parallel_each'
+begin
+	require 'graph'
+rescue LoadError
+	puts "Gem 'graph' is not installed. You will ne be able to see the connections graph."
+end
 
 require 'pp'
 
@@ -192,6 +197,8 @@ class InterwikiConflictSolver
 			rename <group> <group>
 			merge <group> <group>
 				Renames group, or merges two groups together.
+			graph
+				Generates a graph of interwiki connections using Graphviz. Saves files in current directory.
 			commit
 				Saves your changes on all wikis. Prompts you for username and password.
 			linksto <lang> <title>
@@ -362,6 +369,34 @@ class InterwikiConflictSolver
 		end
 	end
 	
+	def command_graph
+		unless Graph
+			puts "'graph' gem not available."
+			return
+		end
+		
+		g = Graph.new
+		@linksfrom.each_pair do |from, to_list|
+			to_list.each do |to|
+				g.edge from.join(':'), to.join(':')
+			end
+		end
+		
+		path = "#{Dir.pwd}/wikigraph-#{Time.now.strftime "%Y%m%d-%H%m%S"}"
+		dotpath = "#{path}.dot"
+		pngpath = "#{path}.png"
+		
+		File.open(dotpath, 'w'){|f| f.write g.to_s}
+		puts "Dotfile saved, processing..."
+		
+		ret = system 'circo', dotpath, '-o', pngpath, '-T', 'png'
+		if ret
+			puts "Saved files to current directory!"
+		else
+			puts "Graphviz not installed. Graph not generated."
+		end
+	end
+	
 	def command_do code
 		begin
 			p eval code
@@ -437,6 +472,9 @@ class InterwikiConflictSolver
 			
 		when 'commit'
 			command_commit
+		
+		when 'graph'
+			command_graph
 			
 		when /\Ado (.+)\Z/
 			command_do $1
