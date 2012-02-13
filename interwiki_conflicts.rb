@@ -74,8 +74,13 @@ class InterwikiConflictSolver
 			
 			iwlinks.each do |pair|
 				unless results.include? pair
-					results << pair
-					queue << pair
+					if pair[1] =~ /#/
+						puts "ignoring #{pair.join ':'} - link to section"
+						next
+					else
+						results << pair
+						queue << pair
+					end
 				end
 			end
 		end
