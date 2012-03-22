@@ -247,7 +247,8 @@ class InterwikiConflictSolver
 		end
 		lists_per_group.each_value{|gr| gr.sort!}
 		
-		lists_per_group.each_pair do |group, pairs|
+		lists_per_group.keys.sort.each do |group|
+			pairs = lists_per_group[group]
 			puts ">>> #{group}"
 			puts pretty_iw(pairs).map{|ln| ln.encode(@enc, undef: :replace)}
 			puts ''
