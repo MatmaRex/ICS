@@ -470,7 +470,7 @@ class InterwikiConflictSolver
 		when /\Agather ([a-z-]+) (.+)(?: ([a-z0-9]+))?\Z/
 			command_gather $1, $2, $3
 			
-		when /\A(?:rename|merge) ([a-z0-9]+) ([a-z0-9]+)\Z/
+		when /\A(?:rename|merge) ([a-z0-9]+) ([a-z0-9]+)\Z/, /\A(?:rename|merge) "([^"]+)" ([a-z0-9]+)\Z/
 			command_rename $1, $2
 			
 		when /\Afind (\*|[a-z,-]+)(?: (.+))?\Z/
