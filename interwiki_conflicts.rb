@@ -125,7 +125,7 @@ class InterwikiConflictSolver
 		puts 'logging in... (wait)'
 		@sf.each_with_index do |kv, i|
 			wiki, s = *kv
-			s.login CGI.escape(user), CGI.escape(pass)
+			s.login user, pass
 			
 			print "#{i+1}/#{@sf.length}\r"
 			@logged_in_wikis << wiki
