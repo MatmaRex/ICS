@@ -1,7 +1,6 @@
 # coding: utf-8
 require 'sunflower'
 require 'launchy'
-require 'parallel_each'
 begin
 	require 'graph'
 rescue LoadError
@@ -124,14 +123,12 @@ class InterwikiConflictSolver
 	def login_all user, pass
 		@logged_in_wikis = []
 		puts 'logging in... (wait)'
-		i = 0
-		@sf.p_each(5) do |kv|
+		@sf.each_with_index do |kv, i|
 			wiki, s = *kv
 			s.login CGI.escape(user), CGI.escape(pass)
 			
 			print "#{i+1}/#{@sf.length}\r"
 			@logged_in_wikis << wiki
-			i+=1
 		end
 		
 		@logged_in_wikis.sort!; @logged_in_wikis.uniq!
@@ -426,8 +423,8 @@ class InterwikiConflictSolver
 				@homewiki = home
 				puts 'logged in.'
 				return true
-			rescue SunflowerError
-				puts 'wrong username or password.'
+			rescue SunflowerError => e
+				puts "couldn't login - wrong username or password? (error was: #{e.message})"
 				return false
 			end
 		else
