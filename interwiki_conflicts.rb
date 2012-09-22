@@ -61,7 +61,7 @@ class InterwikiConflictSolver
 			
 			s = get_sf wiki
 			res = s.API action:'query', prop:'langlinks', lllimit:500, titles:article
-			iwlinks = (res['query']['pages'].first['langlinks'] || []).map{|hsh| [ hsh['lang'], hsh['*'] ] }
+			iwlinks = (res['query']['pages'].values.first['langlinks'] || []).map{|hsh| [ hsh['lang'], hsh['*'] ] }
 			
 			iwlinks.each do |pair|
 				@linksto[pair] ||= []
