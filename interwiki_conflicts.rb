@@ -387,12 +387,12 @@ class InterwikiConflictSolver
 		
 		path = "#{Dir.pwd}/wikigraph-#{Time.now.strftime "%Y%m%d-%H%m%S"}"
 		dotpath = "#{path}.dot"
-		pngpath = "#{path}.png"
+		svgpath = "#{path}.svg"
 		
 		File.open(dotpath, 'w'){|f| f.write g.to_s}
 		puts "Dotfile saved, processing..."
 		
-		ret = system 'circo', dotpath, '-o', pngpath, '-T', 'png'
+		ret = system 'circo', dotpath, '-o', svgpath, '-T', 'svg'
 		if ret
 			puts "Saved files to current directory!"
 		else
