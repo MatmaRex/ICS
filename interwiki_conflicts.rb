@@ -16,6 +16,7 @@ class InterwikiConflictSolver
 		@enc = opts[:output_encoding]
 		
 		@sf = {}
+		@history = []
 		
 		@all = []
 		@groups = {}
@@ -207,6 +208,8 @@ class InterwikiConflictSolver
 				Lists articles from which you can currently reach given article.
 			linksfrom <lang> <title>
 				Lists articles reachable from given article.
+			history
+				Prints history of commands used.
 			exit
 				Exits the tool.
 		
@@ -224,6 +227,10 @@ class InterwikiConflictSolver
 			<~title>
 				Title selector - nothing (matches all), comma-separated list of numbers, regular expression, or title substring.
 		EOF
+	end
+	
+	def command_history
+		puts @history
 	end
 	
 	def command_exit
@@ -434,11 +441,13 @@ class InterwikiConflictSolver
 	end
 	
 	def process_command line
+		return if line.empty?
+		@history << line
+		
 		case line
-		when ''
-			# pass
-			
 		when 'help'; command_help
+			
+		when 'history'; command_history
 			
 		when 'exit'; command_exit
 			
