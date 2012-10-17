@@ -507,7 +507,7 @@ class InterwikiConflictSolver
 	end
 	
 	def busy_loop
-		puts "InterwikiConflictSolver v. 0.2.1"
+		puts "InterwikiConflictSolver v. 0.2.2"
 		puts "Type 'help' to get started."
 		while true
 			begin
