@@ -43,6 +43,7 @@ class InterwikiConflictSolver
 	# Finds articles interwikilinked from the starting one.
 	def gather_from wiki, article, to_group=nil
 		start_pair = [wiki, article]
+		start_pair = (canonicalize_titles [start_pair]).first
 		
 		results = []
 		results << start_pair
@@ -63,6 +64,7 @@ class InterwikiConflictSolver
 			s = get_sf wiki
 			res = s.API action:'query', prop:'langlinks', lllimit:500, titles:article
 			iwlinks = (res['query']['pages'].values.first['langlinks'] || []).map{|hsh| [ hsh['lang'], hsh['*'] ] }
+			iwlinks = (canonicalize_titles iwlinks).uniq
 			
 			iwlinks.each do |pair|
 				@linksto[pair] ||= []
@@ -85,8 +87,6 @@ class InterwikiConflictSolver
 			end
 		end
 		
-		puts 'checking redirects...'
-		results = (follow_redirects results).uniq
 		@all += results
 		@all.uniq!
 		@all.sort!
@@ -102,14 +102,24 @@ class InterwikiConflictSolver
 		pairs.each{|pair| gather_from *pair}
 	end
 	
-	def follow_redirects pairs
+	def canonicalize_titles pairs
+		@__canon_map ||= {}
+		
 		pairs.map do |wiki, title|
-			s = get_sf wiki
-			res = s.API action:'query', titles:title, redirects:true
-			if res['query']['redirects']
-				[wiki, res['query']['redirects'][0]['to'] ]
+			key = [wiki.dup, title.dup]
+			
+			if @__canon_map[key]
+				@__canon_map[key]
 			else
-				[wiki, title]
+				s = get_sf wiki
+				title = s.cleanup_title(title)
+				
+				res = s.API action:'query', titles:title, redirects:true
+				if res['query']['redirects']
+					@__canon_map[key] = [wiki, res['query']['redirects'][0]['to'] ]
+				else
+					@__canon_map[key] = [wiki, title]
+				end
 			end
 		end
 	end
