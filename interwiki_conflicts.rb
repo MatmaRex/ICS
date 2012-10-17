@@ -345,7 +345,7 @@ class InterwikiConflictSolver
 				
 				pairs.each do |pair|
 					wiki, title = *pair
-					page = Page.new title, wiki
+					page = Sunflower::Page.new title, wiki
 					
 					if page.text.scan(clear_iw_regex).sort == pretty_iw(pairs-[pair]).sort
 						puts "#{(pretty_iw [pair])[0]} - no changes needed"
