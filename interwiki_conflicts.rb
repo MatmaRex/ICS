@@ -4,7 +4,7 @@ require 'launchy'
 begin
 	require 'graph'
 rescue LoadError
-	puts "Gem 'graph' is not installed. You will ne be able to see the connections graph."
+	puts "Gem 'graph' is not installed. You will not be able to see the connections graph."
 end
 
 require 'pp'
@@ -31,7 +31,7 @@ class InterwikiConflictSolver
 	# Creates a Sunflower with customized settings and returns it; keeps a cache.
 	def get_sf wiki
 		if !@sf[wiki]
-			@sf[wiki] = Sunflower.new wiki+'.wikipedia.org'
+			@sf[wiki] = Sunflower.new wiki
 		
 			@sf[wiki].warnings = false
 			@sf[wiki].summary = @summary
@@ -51,7 +51,6 @@ class InterwikiConflictSolver
 		queue = []
 		queue << start_pair
 		
-		i = 1
 		while now = queue.shift
 			if @all.include? now
 				puts "skipping #{now.join ':'} - already reached"
